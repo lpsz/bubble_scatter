@@ -42,7 +42,7 @@ class TestBubbleScatter(TestCase):
         true_x_labels = [1, 2]
         true_y_labels = [1, 2]
         true_bubble_sizes = [0.25, 0.25, 0.5]
-        true_bubble_colors = [1, 2, 7]
+        true_bubble_colors = np.array([[1], [2], [7]])
         true_x_values = np.array([[0.0], [0.0], [1.0]])
         true_y_values = np.array([[0.0], [1.0], [0.0]])
 
@@ -51,7 +51,7 @@ class TestBubbleScatter(TestCase):
         self.assertListEqual(scatter.x_labels, true_x_labels)
         self.assertListEqual(scatter.y_labels, true_y_labels)
         self.assertListEqual(scatter.bubble_sizes, true_bubble_sizes)
-        self.assertListEqual(scatter.bubble_colors, true_bubble_colors)
+        self.assertTrue(all(scatter.bubble_colors == true_bubble_colors))
         self.assertTrue(all(scatter.x_values == true_x_values))
         self.assertTrue(all(scatter.y_values == true_y_values))
 
@@ -115,10 +115,10 @@ class TestBubbleScatter(TestCase):
             names=["x", "y"]
         )
 
-        true_result = [7, 2, 1]
+        true_result = np.array([[7], [2], [1]])
         result = scatter._calc_bubble_colors(df, index)
 
-        self.assertListEqual(result, true_result)
+        self.assertTrue(all(result == true_result))
 
     # test calc_xy_values
     # ==========================================================================
@@ -197,77 +197,52 @@ class TestBubbleScatter(TestCase):
     # ==========================================================================
 
     def test__calc_ticks(self):
-        df = pd.DataFrame()
-        df["A"] = [1, 1, 2, 2]
-
-        result = BubbleScatter._calc_ticks(df, "A")
-        true_result = [0, 1]
+        result = BubbleScatter._calc_ticks(["a", "b", "c"])
+        true_result = [0, 1, 2]
         self.assertListEqual(result, true_result)
 
-    # test get_encoder
+    # test get_encoder_categories
     # ==========================================================================
-
-    def test__get_encoder(self):
+    def test__get_encoder_categories_no_bins_no_categories(self):
         df = pd.DataFrame(columns=["x", "y"])
         scatter = BubbleScatter(df, "x", "y")
-        result = scatter._get_encoder("x")
-        self.assertTrue(isinstance(result, OrdinalEncoder))
+        x_categories = scatter._get_encoder_categories("x")
+        y_categories = scatter._get_encoder_categories("y")
+        self.assertEqual(x_categories, "auto")
+        self.assertEqual(y_categories, "auto")
 
-    def test__get_encoder_no_xbins_no_xcategories(self):
+    def test__get_encoder_categories_with_bins_no_categories(self):
         df = pd.DataFrame(columns=["x", "y"])
-        scatter = BubbleScatter(df, "x", "y")
-        encoder = scatter._get_encoder("x")
-        self.assertEqual(encoder.categories, "auto")
+        scatter = BubbleScatter(df, "x", "y", xbins=3, ybins=3)
+        x_categories = scatter._get_encoder_categories("x")
+        y_categories = scatter._get_encoder_categories("y")
+        self.assertEqual(x_categories, "auto")
+        self.assertEqual(y_categories, "auto")
 
-    def test__get_encoder_no_ybins_no_ycategories(self):
+    def test__get_encoder_categories_no_bins_with_categories(self):
         df = pd.DataFrame(columns=["x", "y"])
-        scatter = BubbleScatter(df, "x", "y")
-        encoder = scatter._get_encoder("y")
-        self.assertEqual(encoder.categories, "auto")
+        scatter = BubbleScatter(df, "x", "y", x_categories=["a", "b", "c"],
+                                y_categories=["q", "w", "e"])
+        x_categories = scatter._get_encoder_categories("x")
+        y_categories = scatter._get_encoder_categories("y")
+        self.assertListEqual(x_categories, ["a", "b", "c"])
+        self.assertListEqual(y_categories, ["q", "w", "e"])
 
-    def test__get_encoder_with_xbins_no_xcategories(self):
+    def test__get_encoder_categories_with_bins_with_categories(self):
         df = pd.DataFrame(columns=["x", "y"])
-        scatter = BubbleScatter(df, "x", "y", xbins=3)
-        encoder = scatter._get_encoder("x")
-        self.assertEqual(encoder.categories, "auto")
-
-    def test__get_encoder_with_ybins_no_ycategories(self):
-        df = pd.DataFrame(columns=["x", "y"])
-        scatter = BubbleScatter(df, "x", "y", xbins=3)
-        encoder = scatter._get_encoder("y")
-        self.assertEqual(encoder.categories, "auto")
-
-    def test__get_encoder_no_xbins_with_xcategories(self):
-        df = pd.DataFrame(columns=["x", "y"])
-        scatter = BubbleScatter(df, "x", "y", x_categories=["a", "b", "c"])
-        encoder = scatter._get_encoder("x")
-        self.assertEqual(encoder.categories, ["a", "b", "c"])
-
-    def test__get_encoder_no_ybins_with_ycategories(self):
-        df = pd.DataFrame(columns=["x", "y"])
-        scatter = BubbleScatter(df, "x", "y", y_categories=["a", "b", "c"])
-        encoder = scatter._get_encoder("y")
-        self.assertEqual(encoder.categories, ["a", "b", "c"])
-
-    def test__get_encoder_with_xbins_with_xcategories(self):
-        df = pd.DataFrame(columns=["x", "y"])
-        scatter = BubbleScatter(df, "x", "y", xbins=3,
-                                x_categories=["a", "b", "c"])
-        encoder = scatter._get_encoder("x")
-        self.assertEqual(encoder.categories, "auto")
-
-    def test__get_encoder_with_ybins_with_ycategories(self):
-        df = pd.DataFrame(columns=["x", "y"])
-        scatter = BubbleScatter(df, "x", "y", ybins=3,
-                                y_categories=["a", "b", "c"])
-        encoder = scatter._get_encoder("y")
-        self.assertEqual(encoder.categories, "auto")
+        scatter = BubbleScatter(df, "x", "y", xbins=3, ybins=3,
+                                x_categories=["a", "b", "c"],
+                                y_categories=["q", "w", "e"])
+        x_categories = scatter._get_encoder_categories("x")
+        y_categories = scatter._get_encoder_categories("y")
+        self.assertEqual(x_categories, "auto")
+        self.assertEqual(y_categories, "auto")
 
     # test calc_labels
     # ==========================================================================
 
     def test__calc_labels_x_without_categories(self):
-        df = pd.DataFrame()
+        df = pd.DataFrame(columns=["x", "y"])
 
         scatter = BubbleScatter(df, "x", "y", x_categories=None)
         result = scatter._calc_labels("x", ["a", "b", "c"])
@@ -275,7 +250,7 @@ class TestBubbleScatter(TestCase):
         self.assertListEqual(result, true_result)
 
     def test__calc_labels_y_without_categories(self):
-        df = pd.DataFrame()
+        df = pd.DataFrame(columns=["x", "y"])
 
         scatter = BubbleScatter(df, "x", "y", y_categories=None)
         result = scatter._calc_labels("y", ["a", "b", "c"])
@@ -283,7 +258,7 @@ class TestBubbleScatter(TestCase):
         self.assertListEqual(result, true_result)
 
     def test__calc_labels_x_with_categories(self):
-        df = pd.DataFrame()
+        df = pd.DataFrame(columns=["x", "y"])
 
         scatter = BubbleScatter(df, "x", "y", x_categories=["a", "b"])
         result = scatter._calc_labels("x", ["a", "b", "c"])
@@ -291,12 +266,9 @@ class TestBubbleScatter(TestCase):
         self.assertListEqual(result, true_result)
 
     def test__calc_labels_y_with_categories(self):
-        df = pd.DataFrame()
+        df = pd.DataFrame(columns=["x", "y"])
 
         scatter = BubbleScatter(df, "x", "y", y_categories=["a", "b"])
         result = scatter._calc_labels("y", ["a", "b", "c"])
         true_result = ["a", "b"]
         self.assertListEqual(result, true_result)
-
-    def test__validate_args(self):
-        self.assertRaises(ValueError, BubbleScatter, 1, 1, 1)
