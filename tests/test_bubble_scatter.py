@@ -55,7 +55,7 @@ class TestBubbleScatter(TestCase):
         self.assertTrue(all(scatter.x_values == true_x_values))
         self.assertTrue(all(scatter.y_values == true_y_values))
 
-    # test cacl_bubble_sizes
+    # test calc_bubble_sizes
     # ==========================================================================
 
     def test__calc_bubble_sizes_joint(self):
